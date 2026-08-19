@@ -72,8 +72,9 @@ void setup() {
 
   Serial.println();
   Serial.println(F("Repetition period 0 selects one-shot mode."));
-  Serial.println(F("Values 1 to 255 request continuous spacing in ms."));
-  Serial.println(F("Short periods run at the sensor's best possible rate."));
+  Serial.println(F("Use 1 to 255 ms for continuous measurements."));
+  Serial.println(
+      F("If a reading takes longer, the next one starts as soon as it can."));
   tmf8801.setRepetitionPeriod(50);
   Serial.print(F("Current repetition period: "));
   Serial.print(tmf8801.getRepetitionPeriod());
