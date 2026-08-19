@@ -62,34 +62,34 @@ void setup() {
   Serial.println();
 
   Serial.println(F("\n--- Configuration writes and reads ---"));
-  Serial.println(F("Iterations are a 16-bit value from 0 to 65,535."));
-  Serial.println(F("Each count is 1,000 iterations; 900 is the default."));
-  Serial.println(F("More iterations can improve signal but take longer."));
+
+  // Iterations are a 16-bit value from 0 to 65,535.
+  // Each count is 1,000 iterations; 900 is the default.
+  // More iterations can improve signal but take longer.
   tmf8801.setIterations(900);
   Serial.print(F("Current iterations: "));
   Serial.print(tmf8801.getIterations());
   Serial.println(F(",000"));
 
   Serial.println();
-  Serial.println(F("Repetition period 0 selects one-shot mode."));
-  Serial.println(F("Use 1 to 255 ms for continuous measurements."));
-  Serial.println(
-      F("If a reading takes longer, the next one starts as soon as it can."));
+  // Use 0 for one-shot mode.
+  // Use 1 to 255 ms for continuous measurements.
+  // If a reading takes longer, the next one starts as soon as it can.
   tmf8801.setRepetitionPeriod(50);
   Serial.print(F("Current repetition period: "));
   Serial.print(tmf8801.getRepetitionPeriod());
   Serial.println(F(" ms"));
 
   Serial.println();
-  Serial.println(F("Noise threshold is a 6-bit value from 0 to 63."));
-  Serial.println(F("Use 0 to keep the sensor's default detection threshold."));
+  // The noise threshold is a 6-bit value from 0 to 63.
+  // Use 0 to keep the sensor's default detection threshold.
   tmf8801.setNoiseThreshold(5);
   Serial.print(F("Current noise threshold: "));
   Serial.println(tmf8801.getNoiseThreshold());
 
   Serial.println();
-  Serial.println(F("GPIO modes: 0 disabled, 1 active-low input,"));
-  Serial.println(F("2 active-high input, 3 VCSEL output, 4 low, 5 high."));
+  // GPIO modes are disabled, active-low input, active-high input, VCSEL output,
+  // output low, and output high.
   tmf8801.setGPIOMode(0, TMF8801_GPIO_OUTPUT_LOW);
   tmf8801.setGPIOMode(1, TMF8801_GPIO_OUTPUT_HIGH);
   Serial.print(F("GPIO 0 mode: "));
