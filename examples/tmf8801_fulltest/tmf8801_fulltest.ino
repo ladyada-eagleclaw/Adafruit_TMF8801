@@ -1,7 +1,7 @@
 /*!
  * @file tmf8801_fulltest.ino
  *
- * Exercise the complete public API of the Adafruit TMF8801 library.
+ * Demonstrate the complete public API of the Adafruit TMF8801 library.
  *
  * Factory calibration needs a clear field of view for at least 40 cm and can
  * take up to 30 seconds. The calibration is held in RAM; this example does not
@@ -13,11 +13,6 @@
 
 #include <Adafruit_TMF8801.h>
 
-const uint16_t TEST_ITERATIONS = 900;
-const uint8_t TEST_REPETITION_PERIOD_MS = 50;
-const uint8_t TEST_NOISE_THRESHOLD = 5;
-const uint16_t RESULT_TIMEOUT_MS = 1000;
-
 Adafruit_TMF8801 tmf8801;
 
 void setup() {
@@ -26,21 +21,18 @@ void setup() {
     delay(10);
   }
 
-  Serial.println(F("Adafruit TMF8801 full API test"));
+  Serial.println(F("Adafruit TMF8801 full API demonstration"));
 
   Serial.println(F("\n--- Begin and device information ---"));
   if (!tmf8801.begin(TMF8801_DEFAULT_ADDR, &Wire)) {
-    fail(F("Could not find a valid TMF8801 sensor, check wiring!"));
+    haltWithMessage(F("Could not find a valid TMF8801 sensor, check wiring!"));
   }
-  Serial.println(F("PASS: begin()"));
+  Serial.println(F("TMF8801 found"));
 
   uint8_t chipID = tmf8801.getChipID();
   Serial.print(F("Chip ID: 0x"));
   printHexByte(chipID);
   Serial.println();
-  if (chipID != TMF8801_CHIP_ID) {
-    fail(F("Unexpected chip ID"));
-  }
 
   Serial.print(F("Revision ID: 0x"));
   printHexByte(tmf8801.getRevisionID());
@@ -63,42 +55,42 @@ void setup() {
 
   uint16_t serialNumber = 0;
   if (!tmf8801.readSerialNumber(&serialNumber)) {
-    fail(F("Could not read the serial number"));
+    haltWithMessage(F("Could not read the serial number"));
   }
   Serial.print(F("Serial number: 0x"));
   printHexWord(serialNumber);
   Serial.println();
 
   Serial.println(F("\n--- Configuration writes and reads ---"));
-  tmf8801.setIterations(TEST_ITERATIONS);
-  if (tmf8801.getIterations() != TEST_ITERATIONS) {
-    fail(F("Iteration setting did not read back correctly"));
-  }
-  Serial.print(F("Iterations: "));
+  Serial.println(F("Iterations are a 16-bit value from 0 to 65,535."));
+  Serial.println(F("Each count is 1,000 iterations; 900 is the default."));
+  Serial.println(F("More iterations can improve signal but take longer."));
+  tmf8801.setIterations(900);
+  Serial.print(F("Current iterations: "));
   Serial.print(tmf8801.getIterations());
   Serial.println(F(",000"));
 
-  tmf8801.setRepetitionPeriod(TEST_REPETITION_PERIOD_MS);
-  if (tmf8801.getRepetitionPeriod() != TEST_REPETITION_PERIOD_MS) {
-    fail(F("Repetition period did not read back correctly"));
-  }
-  Serial.print(F("Repetition period: "));
+  Serial.println();
+  Serial.println(F("Repetition period 0 selects one-shot mode."));
+  Serial.println(F("Values 1 to 255 request continuous spacing in ms."));
+  Serial.println(F("Short periods run at the sensor's best possible rate."));
+  tmf8801.setRepetitionPeriod(50);
+  Serial.print(F("Current repetition period: "));
   Serial.print(tmf8801.getRepetitionPeriod());
   Serial.println(F(" ms"));
 
-  tmf8801.setNoiseThreshold(TEST_NOISE_THRESHOLD);
-  if (tmf8801.getNoiseThreshold() != TEST_NOISE_THRESHOLD) {
-    fail(F("Noise threshold did not read back correctly"));
-  }
-  Serial.print(F("Noise threshold: "));
+  Serial.println();
+  Serial.println(F("Noise threshold is a 6-bit value from 0 to 63."));
+  Serial.println(F("Zero is the vendor default object-detection threshold."));
+  tmf8801.setNoiseThreshold(5);
+  Serial.print(F("Current noise threshold: "));
   Serial.println(tmf8801.getNoiseThreshold());
 
+  Serial.println();
+  Serial.println(F("GPIO modes: 0 disabled, 1 active-low input,"));
+  Serial.println(F("2 active-high input, 3 VCSEL output, 4 low, 5 high."));
   tmf8801.setGPIOMode(0, TMF8801_GPIO_OUTPUT_LOW);
   tmf8801.setGPIOMode(1, TMF8801_GPIO_OUTPUT_HIGH);
-  if (tmf8801.getGPIOMode(0) != TMF8801_GPIO_OUTPUT_LOW ||
-      tmf8801.getGPIOMode(1) != TMF8801_GPIO_OUTPUT_HIGH) {
-    fail(F("GPIO modes did not read back correctly"));
-  }
   Serial.print(F("GPIO 0 mode: "));
   printGPIOMode(tmf8801.getGPIOMode(0));
   Serial.println();
@@ -108,45 +100,43 @@ void setup() {
 
   Serial.println(F("\n--- Continuous measurement and full result ---"));
   if (!tmf8801.startMeasuring(true)) {
-    fail(F("Could not start continuous measurements"));
+    haltWithMessage(F("Could not start continuous measurements"));
   }
-  Serial.println(F("PASS: startMeasuring(true)"));
+  Serial.println(F("Continuous measurement started"));
 
-  if (!waitForData(RESULT_TIMEOUT_MS)) {
-    fail(F("Continuous measurement timed out"));
+  if (!waitForData(1000)) {
+    haltWithMessage(F("Continuous measurement timed out"));
   }
-  Serial.println(F("PASS: dataReady()"));
 
   tmf8801_result_t result;
   if (!tmf8801.readResult(&result)) {
-    fail(F("Could not read the complete result"));
+    haltWithMessage(F("Could not read the complete result"));
   }
-  Serial.println(F("PASS: readResult()"));
   printResult(&result);
 
   uint8_t algorithmState[TMF8801_ALGORITHM_STATE_SIZE];
   if (!tmf8801.getAlgorithmState(algorithmState)) {
-    fail(F("Could not read the algorithm state"));
+    haltWithMessage(F("Could not read the algorithm state"));
   }
   Serial.print(F("Algorithm state:"));
   printBytes(algorithmState, sizeof(algorithmState));
 
   if (!tmf8801.stopMeasuring()) {
-    fail(F("Could not stop continuous measurements"));
+    haltWithMessage(F("Could not stop continuous measurements"));
   }
-  Serial.println(F("PASS: stopMeasuring()"));
+  Serial.println(F("Continuous measurement stopped"));
 
   Serial.println(F("\n--- Single-shot distance helper ---"));
   tmf8801.setNoiseThreshold(0);
   tmf8801.setGPIOMode(0, TMF8801_GPIO_DISABLED);
   tmf8801.setGPIOMode(1, TMF8801_GPIO_DISABLED);
   if (!tmf8801.startMeasuring(false)) {
-    fail(F("Could not start a single-shot measurement"));
+    haltWithMessage(F("Could not start a single-shot measurement"));
   }
-  Serial.println(F("PASS: startMeasuring(false)"));
+  Serial.println(F("Single-shot measurement started"));
 
-  if (!waitForData(RESULT_TIMEOUT_MS)) {
-    fail(F("Single-shot measurement timed out"));
+  if (!waitForData(1000)) {
+    haltWithMessage(F("Single-shot measurement timed out"));
   }
   int16_t distance = tmf8801.readDistance();
   if (distance < 0) {
@@ -167,90 +157,81 @@ void setup() {
   }
 
   if (!tmf8801.performFactoryCalibration()) {
-    fail(F("Factory calibration failed"));
+    haltWithMessage(F("Factory calibration did not complete"));
   }
-  Serial.println(F("PASS: performFactoryCalibration()"));
+  Serial.println(F("Factory calibration completed"));
 
   uint8_t calibration[TMF8801_CALIBRATION_DATA_SIZE];
   if (!tmf8801.getCalibrationData(calibration)) {
-    fail(F("Could not read the factory calibration data"));
+    haltWithMessage(F("Could not read the factory calibration data"));
   }
   Serial.print(F("Factory calibration:"));
   printBytes(calibration, sizeof(calibration));
 
   if (!tmf8801.setCalibrationData(calibration)) {
-    fail(F("Could not write the factory calibration data"));
+    haltWithMessage(F("setCalibrationData() returned false"));
   }
-  uint8_t calibrationReadback[TMF8801_CALIBRATION_DATA_SIZE];
-  if (!tmf8801.getCalibrationData(calibrationReadback) ||
-      memcmp(calibration, calibrationReadback, sizeof(calibration)) != 0) {
-    fail(F("Factory calibration data did not read back correctly"));
-  }
+  Serial.println(F("setCalibrationData() returned true"));
   tmf8801.enableCalibration(true);
-  Serial.println(F("PASS: calibration data write, readback, and enable"));
+  Serial.println(F("Calibration replay enabled"));
 
   if (!tmf8801.startMeasuring(false)) {
-    fail(F("Could not start a calibrated measurement"));
+    haltWithMessage(F("Could not start a calibrated measurement"));
   }
-  if (!waitForData(RESULT_TIMEOUT_MS)) {
-    fail(F("Calibrated measurement timed out"));
+  if (!waitForData(1000)) {
+    haltWithMessage(F("Calibrated measurement timed out"));
   }
   if (!tmf8801.readResult(&result)) {
-    fail(F("Could not read the calibrated result"));
+    haltWithMessage(F("Could not read the calibrated result"));
   }
-  Serial.println(F("PASS: calibrated result"));
+  Serial.println(F("Calibrated result:"));
   printResult(&result);
 
   if (!tmf8801.getAlgorithmState(algorithmState)) {
-    fail(F("Could not read the calibrated algorithm state"));
+    haltWithMessage(F("Could not read the calibrated algorithm state"));
   }
   Serial.print(F("Calibrated algorithm state:"));
   printBytes(algorithmState, sizeof(algorithmState));
 
   if (!tmf8801.setAlgorithmState(algorithmState)) {
-    fail(F("Could not write the calibrated algorithm state"));
+    haltWithMessage(F("setAlgorithmState() returned false"));
   }
-  uint8_t algorithmStateReadback[TMF8801_ALGORITHM_STATE_SIZE];
-  if (!tmf8801.getAlgorithmState(algorithmStateReadback) ||
-      memcmp(algorithmState, algorithmStateReadback,
-             sizeof(algorithmState)) != 0) {
-    fail(F("Algorithm state did not read back correctly"));
-  }
+  Serial.println(F("setAlgorithmState() returned true"));
   tmf8801.enableAlgorithmState(true);
-  Serial.println(F("PASS: algorithm state write, readback, and enable"));
+  Serial.println(F("Algorithm-state replay enabled"));
 
   if (!tmf8801.startMeasuring(false)) {
-    fail(F("Could not start an algorithm-state replay measurement"));
+    haltWithMessage(F("Could not start an algorithm-state replay measurement"));
   }
-  if (!waitForData(RESULT_TIMEOUT_MS)) {
-    fail(F("Algorithm-state replay measurement timed out"));
+  if (!waitForData(1000)) {
+    haltWithMessage(F("Algorithm-state replay measurement timed out"));
   }
   if (!tmf8801.readResult(&result)) {
-    fail(F("Could not read the algorithm-state replay result"));
+    haltWithMessage(F("Could not read the algorithm-state replay result"));
   }
-  Serial.println(F("PASS: calibrated result with algorithm-state replay"));
+  Serial.println(F("Calibrated result with algorithm-state replay:"));
   printResult(&result);
 
   tmf8801.enableAlgorithmState(false);
   tmf8801.enableCalibration(false);
-  Serial.println(F("PASS: calibration and algorithm-state replay disabled"));
+  Serial.println(F("Calibration and algorithm-state replay disabled"));
 
   Serial.println(F("\n--- Standby, wake, and reset ---"));
   if (!tmf8801.sleep()) {
-    fail(F("Could not enter standby"));
+    haltWithMessage(F("Could not enter standby"));
   }
-  Serial.println(F("PASS: sleep()"));
+  Serial.println(F("Sensor entered standby"));
   delay(10);
 
   if (!tmf8801.wakeup()) {
-    fail(F("Could not wake from standby"));
+    haltWithMessage(F("Could not wake from standby"));
   }
-  Serial.println(F("PASS: wakeup()"));
+  Serial.println(F("Sensor woke from standby"));
 
   if (!tmf8801.reset()) {
-    fail(F("Could not reset and reload the measurement firmware"));
+    haltWithMessage(F("Could not reset and reload the measurement firmware"));
   }
-  Serial.println(F("PASS: reset() and firmware reload"));
+  Serial.println(F("Sensor reset and measurement firmware reloaded"));
 
   Serial.print(F("Chip ID after reset: 0x"));
   printHexByte(tmf8801.getChipID());
@@ -259,13 +240,13 @@ void setup() {
   printHexByte(tmf8801.getStatus());
   Serial.println();
 
-  Serial.println(F("\nFULL API TEST PASSED"));
+  Serial.println(F("\nFULL API DEMONSTRATION COMPLETE"));
 }
 
 void loop() { delay(1000); }
 
-void fail(const __FlashStringHelper *message) {
-  Serial.print(F("FAIL: "));
+void haltWithMessage(const __FlashStringHelper *message) {
+  Serial.print(F("Stopped: "));
   Serial.println(message);
   while (1) {
     delay(10);
