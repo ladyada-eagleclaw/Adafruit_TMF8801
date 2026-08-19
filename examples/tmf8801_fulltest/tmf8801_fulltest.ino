@@ -1,11 +1,8 @@
 /*!
  * @file tmf8801_fulltest.ino
  *
- * Demonstrate the complete public API of the Adafruit TMF8801 library.
- *
- * Factory calibration needs a clear field of view for at least 40 cm and can
- * take up to 30 seconds. The calibration is held in RAM; this example does not
- * write nonvolatile memory.
+ * Demonstrate TMF8801 device information, configuration, power control, and
+ * ranging.
  *
  * Written by Limor Fried/Ladyada for Adafruit Industries.
  * MIT license, all text above must be included in any redistribution.
@@ -21,7 +18,7 @@ void setup() {
     delay(10);
   }
 
-  Serial.println(F("Adafruit TMF8801 full API demonstration"));
+  Serial.println(F("Adafruit TMF8801 full test"));
 
   Serial.println(F("\n--- Begin, sleep, wake, and reset ---"));
   if (!tmf8801.begin(TMF8801_DEFAULT_ADDR, &Wire)) {
@@ -117,10 +114,6 @@ void setup() {
   printGPIOMode(tmf8801.getGPIOMode(1));
   Serial.println();
 
-  // Factory calibration needs a clear field of view for at least 40 cm and can
-  // take up to 30 seconds. Uncomment the next line to run it once at startup.
-  // runFactoryCalibration();
-
   Serial.println(F("\n--- Measurements ---"));
 }
 
@@ -165,84 +158,6 @@ void loop() {
   Serial.print(F("Algorithm state:"));
   printBytes(algorithmState, sizeof(algorithmState));
   Serial.println();
-}
-
-void runFactoryCalibration() {
-  Serial.println(F("\n--- Factory calibration and data replay ---"));
-  Serial.println(F("Clear all objects within 40 cm of the sensor."));
-  for (uint8_t seconds = 5; seconds > 0; seconds--) {
-    Serial.print(F("Calibration starts in "));
-    Serial.print(seconds);
-    Serial.println(F("..."));
-    delay(1000);
-  }
-
-  if (!tmf8801.performFactoryCalibration()) {
-    haltWithMessage(F("Factory calibration did not complete"));
-  }
-  Serial.println(F("Factory calibration completed"));
-
-  uint8_t calibration[TMF8801_CALIBRATION_DATA_SIZE];
-  if (!tmf8801.getCalibrationData(calibration)) {
-    haltWithMessage(F("Could not read the factory calibration data"));
-  }
-  Serial.print(F("Factory calibration:"));
-  printBytes(calibration, sizeof(calibration));
-
-  if (!tmf8801.setCalibrationData(calibration)) {
-    haltWithMessage(F("setCalibrationData() returned false"));
-  }
-  Serial.println(F("setCalibrationData() returned true"));
-  tmf8801.enableCalibration(true);
-  Serial.println(F("Calibration replay enabled"));
-
-  if (!tmf8801.startMeasuring(false)) {
-    haltWithMessage(F("Could not start a calibrated measurement"));
-  }
-  if (!waitForData(1000)) {
-    haltWithMessage(F("Calibrated measurement timed out"));
-  }
-
-  tmf8801_result_t result;
-  if (!tmf8801.readResult(&result)) {
-    haltWithMessage(F("Could not read the calibrated result"));
-  }
-  Serial.println(F("Calibrated result:"));
-  printResult(&result);
-
-  uint8_t algorithmState[TMF8801_ALGORITHM_STATE_SIZE];
-  if (!tmf8801.getAlgorithmState(algorithmState)) {
-    haltWithMessage(F("Could not read the calibrated algorithm state"));
-  }
-  Serial.print(F("Calibrated algorithm state:"));
-  printBytes(algorithmState, sizeof(algorithmState));
-
-  if (!tmf8801.setAlgorithmState(algorithmState)) {
-    haltWithMessage(F("setAlgorithmState() returned false"));
-  }
-  Serial.println(F("setAlgorithmState() returned true"));
-  tmf8801.enableAlgorithmState(true);
-  Serial.println(F("Algorithm-state replay enabled"));
-
-  if (!tmf8801.startMeasuring(false)) {
-    haltWithMessage(F("Could not start an algorithm-state replay measurement"));
-  }
-  if (!waitForData(1000)) {
-    haltWithMessage(F("Algorithm-state replay measurement timed out"));
-  }
-
-  int16_t distance = tmf8801.readDistance();
-  if (distance < 0) {
-    Serial.println(F("readDistance(): no reliable object detected"));
-  } else {
-    Serial.print(F("readDistance(): "));
-    Serial.print(distance);
-    Serial.println(F(" mm"));
-  }
-
-  tmf8801.enableAlgorithmState(false);
-  tmf8801.enableCalibration(false);
-  Serial.println(F("Calibration and algorithm-state replay disabled"));
 }
 
 void haltWithMessage(const __FlashStringHelper *message) {
