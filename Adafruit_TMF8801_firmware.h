@@ -753,6 +753,7 @@ static const uint8_t PROGMEM tmf8801_firmware[] = {
 };
 // clang-format on
 
+/*! Firmware image size in bytes. */
 #define TMF8801_FIRMWARE_SIZE sizeof(tmf8801_firmware)
 
 #endif // ADAFRUIT_TMF8801_FIRMWARE_H
