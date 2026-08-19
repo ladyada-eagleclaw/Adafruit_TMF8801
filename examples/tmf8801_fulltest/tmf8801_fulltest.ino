@@ -124,7 +124,9 @@ void loop() {
   if (continuous) {
     if (!continuousMeasurementStarted) {
       if (!tmf8801.startMeasuring(true)) {
-        haltWithMessage(F("Could not start continuous measurements"));
+        Serial.println(F("Could not start continuous measurements"));
+        delay(100);
+        return;
       }
       continuousMeasurementStarted = true;
       Serial.println(F("Continuous measurements started"));
@@ -132,28 +134,42 @@ void loop() {
   } else {
     if (continuousMeasurementStarted) {
       if (!tmf8801.stopMeasuring()) {
-        haltWithMessage(F("Could not stop continuous measurements"));
+        Serial.println(F("Could not stop continuous measurements"));
+        delay(100);
+        return;
       }
       continuousMeasurementStarted = false;
     }
     if (!tmf8801.startMeasuring(false)) {
-      haltWithMessage(F("Could not start a single-shot measurement"));
+      Serial.println(F("Could not start a single-shot measurement"));
+      delay(100);
+      return;
     }
   }
 
   if (!waitForData(1000)) {
-    haltWithMessage(F("Measurement timed out"));
+    Serial.println(F("Measurement timed out; restarting"));
+    if (continuous) {
+      tmf8801.stopMeasuring();
+      continuousMeasurementStarted = false;
+    }
+    delay(100);
+    return;
   }
 
   tmf8801_result_t result;
   if (!tmf8801.readResult(&result)) {
-    haltWithMessage(F("Could not read the complete result"));
+    Serial.println(F("Could not read the complete result"));
+    delay(100);
+    return;
   }
   printResult(&result);
 
   uint8_t algorithmState[TMF8801_ALGORITHM_STATE_SIZE];
   if (!tmf8801.getAlgorithmState(algorithmState)) {
-    haltWithMessage(F("Could not read the algorithm state"));
+    Serial.println(F("Could not read the algorithm state"));
+    delay(100);
+    return;
   }
   Serial.print(F("Algorithm state:"));
   printBytes(algorithmState, sizeof(algorithmState));

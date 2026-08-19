@@ -88,6 +88,10 @@
 #define TMF8801_CALIBRATION_DATA_SIZE 14 ///< Factory calibration byte count
 #define TMF8801_ALGORITHM_STATE_SIZE 11  ///< Algorithm state byte count
 #define TMF8801_RESULT_DATA_SIZE 27      ///< Measurement result byte count
+#define TMF8801_RESULT_HEADER_SIZE 3     ///< Status, contents, and TID bytes
+#define TMF8801_RESULT_CONTENTS_OFFSET 1 ///< Contents byte in result frame
+#define TMF8801_RESULT_FRAME_SIZE \
+  (TMF8801_RESULT_HEADER_SIZE + TMF8801_RESULT_DATA_SIZE) ///< Full result read
 
 /*!
  * @brief TMF8801 GPIO function used during capture

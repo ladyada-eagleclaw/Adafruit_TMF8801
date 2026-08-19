@@ -171,20 +171,18 @@ bool Adafruit_TMF8801::readResult(tmf8801_result_t* result) {
     return false;
   }
 
-  uint8_t status[4];
-  uint8_t reg = TMF8801_REG_STATE;
-  if (!_i2c_dev->write_then_read(&reg, 1, status, sizeof(status))) {
+  // Read from STATUS through the complete result in one transaction. The
+  // sensor uses this block read to update the result and system clock together.
+  uint8_t frame[TMF8801_RESULT_FRAME_SIZE];
+  uint8_t reg = TMF8801_REG_STATUS;
+  if (!_i2c_dev->write_then_read(&reg, 1, frame, sizeof(frame))) {
     return false;
   }
-  if (status[2] != TMF8801_CONTENT_RESULT) {
+  if (frame[TMF8801_RESULT_CONTENTS_OFFSET] != TMF8801_CONTENT_RESULT) {
     return false;
   }
 
-  uint8_t data[TMF8801_RESULT_DATA_SIZE];
-  reg = TMF8801_REG_RESULT_NUMBER;
-  if (!_i2c_dev->write_then_read(&reg, 1, data, sizeof(data))) {
-    return false;
-  }
+  const uint8_t* data = &frame[TMF8801_RESULT_HEADER_SIZE];
 
   result->number = data[0];
   result->reliability = data[1] & TMF8801_RESULT_RELIABILITY_MASK;
