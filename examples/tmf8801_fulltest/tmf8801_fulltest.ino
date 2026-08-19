@@ -23,11 +23,29 @@ void setup() {
 
   Serial.println(F("Adafruit TMF8801 full API demonstration"));
 
-  Serial.println(F("\n--- Begin and device information ---"));
+  Serial.println(F("\n--- Begin, sleep, wake, and reset ---"));
   if (!tmf8801.begin(TMF8801_DEFAULT_ADDR, &Wire)) {
     haltWithMessage(F("Could not find a valid TMF8801 sensor, check wiring!"));
   }
   Serial.println(F("TMF8801 found"));
+
+  if (!tmf8801.sleep()) {
+    haltWithMessage(F("Could not enter standby"));
+  }
+  Serial.println(F("Sensor entered standby"));
+  delay(10);
+
+  if (!tmf8801.wakeup()) {
+    haltWithMessage(F("Could not wake from standby"));
+  }
+  Serial.println(F("Sensor woke from standby"));
+
+  if (!tmf8801.reset()) {
+    haltWithMessage(F("Could not reset and reload the measurement firmware"));
+  }
+  Serial.println(F("Sensor reset and measurement firmware reloaded"));
+
+  Serial.println(F("\n--- Device information ---"));
 
   uint8_t chipID = tmf8801.getChipID();
   Serial.print(F("Chip ID: 0x"));
@@ -99,14 +117,39 @@ void setup() {
   printGPIOMode(tmf8801.getGPIOMode(1));
   Serial.println();
 
-  Serial.println(F("\n--- Continuous measurement and full result ---"));
-  if (!tmf8801.startMeasuring(true)) {
-    haltWithMessage(F("Could not start continuous measurements"));
+  // Factory calibration needs a clear field of view for at least 40 cm and can
+  // take up to 30 seconds. Uncomment the next line to run it once at startup.
+  // runFactoryCalibration();
+
+  Serial.println(F("\n--- Measurements ---"));
+}
+
+void loop() {
+  static bool continuousMeasurementStarted = false;
+  bool continuous = tmf8801.getRepetitionPeriod() > 0;
+
+  if (continuous) {
+    if (!continuousMeasurementStarted) {
+      if (!tmf8801.startMeasuring(true)) {
+        haltWithMessage(F("Could not start continuous measurements"));
+      }
+      continuousMeasurementStarted = true;
+      Serial.println(F("Continuous measurements started"));
+    }
+  } else {
+    if (continuousMeasurementStarted) {
+      if (!tmf8801.stopMeasuring()) {
+        haltWithMessage(F("Could not stop continuous measurements"));
+      }
+      continuousMeasurementStarted = false;
+    }
+    if (!tmf8801.startMeasuring(false)) {
+      haltWithMessage(F("Could not start a single-shot measurement"));
+    }
   }
-  Serial.println(F("Continuous measurement started"));
 
   if (!waitForData(1000)) {
-    haltWithMessage(F("Continuous measurement timed out"));
+    haltWithMessage(F("Measurement timed out"));
   }
 
   tmf8801_result_t result;
@@ -121,33 +164,10 @@ void setup() {
   }
   Serial.print(F("Algorithm state:"));
   printBytes(algorithmState, sizeof(algorithmState));
+  Serial.println();
+}
 
-  if (!tmf8801.stopMeasuring()) {
-    haltWithMessage(F("Could not stop continuous measurements"));
-  }
-  Serial.println(F("Continuous measurement stopped"));
-
-  Serial.println(F("\n--- Single-shot distance helper ---"));
-  tmf8801.setNoiseThreshold(0);
-  tmf8801.setGPIOMode(0, TMF8801_GPIO_DISABLED);
-  tmf8801.setGPIOMode(1, TMF8801_GPIO_DISABLED);
-  if (!tmf8801.startMeasuring(false)) {
-    haltWithMessage(F("Could not start a single-shot measurement"));
-  }
-  Serial.println(F("Single-shot measurement started"));
-
-  if (!waitForData(1000)) {
-    haltWithMessage(F("Single-shot measurement timed out"));
-  }
-  int16_t distance = tmf8801.readDistance();
-  if (distance < 0) {
-    Serial.println(F("readDistance(): no reliable object detected"));
-  } else {
-    Serial.print(F("readDistance(): "));
-    Serial.print(distance);
-    Serial.println(F(" mm"));
-  }
-
+void runFactoryCalibration() {
   Serial.println(F("\n--- Factory calibration and data replay ---"));
   Serial.println(F("Clear all objects within 40 cm of the sensor."));
   for (uint8_t seconds = 5; seconds > 0; seconds--) {
@@ -182,12 +202,15 @@ void setup() {
   if (!waitForData(1000)) {
     haltWithMessage(F("Calibrated measurement timed out"));
   }
+
+  tmf8801_result_t result;
   if (!tmf8801.readResult(&result)) {
     haltWithMessage(F("Could not read the calibrated result"));
   }
   Serial.println(F("Calibrated result:"));
   printResult(&result);
 
+  uint8_t algorithmState[TMF8801_ALGORITHM_STATE_SIZE];
   if (!tmf8801.getAlgorithmState(algorithmState)) {
     haltWithMessage(F("Could not read the calibrated algorithm state"));
   }
@@ -207,44 +230,20 @@ void setup() {
   if (!waitForData(1000)) {
     haltWithMessage(F("Algorithm-state replay measurement timed out"));
   }
-  if (!tmf8801.readResult(&result)) {
-    haltWithMessage(F("Could not read the algorithm-state replay result"));
+
+  int16_t distance = tmf8801.readDistance();
+  if (distance < 0) {
+    Serial.println(F("readDistance(): no reliable object detected"));
+  } else {
+    Serial.print(F("readDistance(): "));
+    Serial.print(distance);
+    Serial.println(F(" mm"));
   }
-  Serial.println(F("Calibrated result with algorithm-state replay:"));
-  printResult(&result);
 
   tmf8801.enableAlgorithmState(false);
   tmf8801.enableCalibration(false);
   Serial.println(F("Calibration and algorithm-state replay disabled"));
-
-  Serial.println(F("\n--- Standby, wake, and reset ---"));
-  if (!tmf8801.sleep()) {
-    haltWithMessage(F("Could not enter standby"));
-  }
-  Serial.println(F("Sensor entered standby"));
-  delay(10);
-
-  if (!tmf8801.wakeup()) {
-    haltWithMessage(F("Could not wake from standby"));
-  }
-  Serial.println(F("Sensor woke from standby"));
-
-  if (!tmf8801.reset()) {
-    haltWithMessage(F("Could not reset and reload the measurement firmware"));
-  }
-  Serial.println(F("Sensor reset and measurement firmware reloaded"));
-
-  Serial.print(F("Chip ID after reset: 0x"));
-  printHexByte(tmf8801.getChipID());
-  Serial.println();
-  Serial.print(F("Status after reset: 0x"));
-  printHexByte(tmf8801.getStatus());
-  Serial.println();
-
-  Serial.println(F("\nFULL API DEMONSTRATION COMPLETE"));
 }
-
-void loop() { delay(1000); }
 
 void haltWithMessage(const __FlashStringHelper *message) {
   Serial.print(F("Stopped: "));
