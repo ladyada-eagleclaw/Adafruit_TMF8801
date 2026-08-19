@@ -82,7 +82,7 @@ void setup() {
 
   Serial.println();
   Serial.println(F("Noise threshold is a 6-bit value from 0 to 63."));
-  Serial.println(F("Zero is the vendor default object-detection threshold."));
+  Serial.println(F("Use 0 to keep the sensor's default detection threshold."));
   tmf8801.setNoiseThreshold(5);
   Serial.print(F("Current noise threshold: "));
   Serial.println(tmf8801.getNoiseThreshold());
