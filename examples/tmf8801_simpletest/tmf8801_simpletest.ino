@@ -70,7 +70,7 @@ void loop() {
 
 void printReliability(uint8_t reliability) {
   Serial.print(reliability);
-  Serial.print(F(" out of "));
+  Serial.print(F("/"));
   Serial.print(TMF8801_RESULT_RELIABILITY_LEVELS);
   Serial.print(F(" ("));
   if (reliability >= TMF8801_RESULT_RELIABILITY_HIGH_MIN) {
@@ -86,10 +86,10 @@ void printMeasurementStatus(tmf8801_measurement_status_t status) {
   Serial.print(F(" ("));
   switch (status) {
   case TMF8801_MEASUREMENT_NOT_INTERRUPTED:
-    Serial.print(F("measurement not interrupted"));
+    Serial.print(F("normal"));
     break;
   case TMF8801_MEASUREMENT_INTERRUPTED_BY_GPIO:
-    Serial.print(F("measurement interrupted by GPIO"));
+    Serial.print(F("interrupted by GPIO"));
     break;
   case TMF8801_MEASUREMENT_STATUS_RESERVED_1:
   case TMF8801_MEASUREMENT_STATUS_RESERVED_3:
