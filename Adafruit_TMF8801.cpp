@@ -20,6 +20,9 @@
 
 #include "Adafruit_TMF8801_firmware.h"
 
+/*!
+ * @brief Construct a new TMF8801 sensor object.
+ */
 Adafruit_TMF8801::Adafruit_TMF8801() {
   _i2c_dev = nullptr;
   _iterations = 900;
@@ -35,12 +38,22 @@ Adafruit_TMF8801::Adafruit_TMF8801() {
   memset(_algorithmState, 0, sizeof(_algorithmState));
 }
 
+/*!
+ * @brief Destroy the TMF8801 sensor object and release its I2C device.
+ */
 Adafruit_TMF8801::~Adafruit_TMF8801() {
   if (_i2c_dev) {
     delete _i2c_dev;
   }
 }
 
+/*!
+ * @brief Initialize the sensor, load its firmware, and verify the chip ID.
+ *
+ * @param addr The sensor's I2C address.
+ * @param wire The I2C interface to use.
+ * @return True if initialization succeeded, otherwise false.
+ */
 bool Adafruit_TMF8801::begin(uint8_t addr, TwoWire* wire) {
   if (_i2c_dev) {
     delete _i2c_dev;
@@ -58,6 +71,11 @@ bool Adafruit_TMF8801::begin(uint8_t addr, TwoWire* wire) {
   return getChipID() == TMF8801_CHIP_ID;
 }
 
+/*!
+ * @brief Reset the sensor and reload its RAM measurement firmware.
+ *
+ * @return True if the measurement application restarted, otherwise false.
+ */
 bool Adafruit_TMF8801::reset() {
   if (!_i2c_dev) {
     return false;
@@ -81,6 +99,12 @@ bool Adafruit_TMF8801::reset() {
   return startApp();
 }
 
+/*!
+ * @brief Start distance measurements using the current configuration.
+ *
+ * @param continuous True for continuous measurements, or false for one-shot.
+ * @return True if the measurement command was accepted, otherwise false.
+ */
 bool Adafruit_TMF8801::startMeasuring(bool continuous) {
   if (!_i2c_dev) {
     return false;
@@ -130,6 +154,11 @@ bool Adafruit_TMF8801::startMeasuring(bool continuous) {
   return waitForCommand(command[10], 20);
 }
 
+/*!
+ * @brief Stop measurements and wait for the sensor to become idle.
+ *
+ * @return True if measurement stopped successfully, otherwise false.
+ */
 bool Adafruit_TMF8801::stopMeasuring() {
   if (!_i2c_dev) {
     return false;
@@ -146,6 +175,11 @@ bool Adafruit_TMF8801::stopMeasuring() {
   return waitForIdle(250);
 }
 
+/*!
+ * @brief Check whether a new measurement result is ready.
+ *
+ * @return True when a result is ready to read, otherwise false.
+ */
 bool Adafruit_TMF8801::dataReady() {
   if (!_i2c_dev) {
     return false;
@@ -155,6 +189,11 @@ bool Adafruit_TMF8801::dataReady() {
   return (interruptStatus.read() & TMF8801_INT_RESULT) != 0;
 }
 
+/*!
+ * @brief Read the measured distance as a convenience operation.
+ *
+ * @return Distance in millimeters, or -1 if no reliable result was available.
+ */
 int16_t Adafruit_TMF8801::readDistance() {
   tmf8801_result_t result;
   if (!readResult(&result)) {
@@ -166,6 +205,12 @@ int16_t Adafruit_TMF8801::readDistance() {
   return (int16_t)result.distance_mm;
 }
 
+/*!
+ * @brief Read the complete measurement result.
+ *
+ * @param result Pointer to the result structure to fill.
+ * @return True if a valid result was read, otherwise false.
+ */
 bool Adafruit_TMF8801::readResult(tmf8801_result_t* result) {
   if (!_i2c_dev || !result || !dataReady()) {
     return false;
@@ -202,30 +247,66 @@ bool Adafruit_TMF8801::readResult(tmf8801_result_t* result) {
   return clearInterrupt(TMF8801_INT_RESULT);
 }
 
+/*!
+ * @brief Set the number of measurement iterations.
+ *
+ * @param kiloIterations Number of iterations in thousands.
+ */
 void Adafruit_TMF8801::setIterations(uint16_t kiloIterations) {
   _iterations = kiloIterations;
 }
 
+/*!
+ * @brief Get the configured number of measurement iterations.
+ *
+ * @return Number of iterations in thousands.
+ */
 uint16_t Adafruit_TMF8801::getIterations() {
   return _iterations;
 }
 
+/*!
+ * @brief Set the requested interval between continuous results.
+ *
+ * @param periodMs Result interval in milliseconds, from 1 to 255.
+ */
 void Adafruit_TMF8801::setRepetitionPeriod(uint8_t periodMs) {
   _repetitionPeriod = periodMs;
 }
 
+/*!
+ * @brief Get the requested interval between continuous results.
+ *
+ * @return Result interval in milliseconds.
+ */
 uint8_t Adafruit_TMF8801::getRepetitionPeriod() {
   return _repetitionPeriod;
 }
 
+/*!
+ * @brief Set the object-detection noise threshold.
+ *
+ * @param threshold Noise threshold from 0 to 255. Zero uses the default.
+ */
 void Adafruit_TMF8801::setNoiseThreshold(uint8_t threshold) {
   _noiseThreshold = threshold;
 }
 
+/*!
+ * @brief Get the configured object-detection noise threshold.
+ *
+ * @return The configured noise threshold.
+ */
 uint8_t Adafruit_TMF8801::getNoiseThreshold() {
   return _noiseThreshold;
 }
 
+/*!
+ * @brief Configure one of the sensor's GPIO pins for measurement.
+ *
+ * @param gpio GPIO number, either 0 or 1.
+ * @param mode Function to assign to the selected GPIO pin.
+ */
 void Adafruit_TMF8801::setGPIOMode(uint8_t gpio, tmf8801_gpio_mode_t mode) {
   if (gpio == 0) {
     _gpio0Mode = (uint8_t)mode;
@@ -234,6 +315,12 @@ void Adafruit_TMF8801::setGPIOMode(uint8_t gpio, tmf8801_gpio_mode_t mode) {
   }
 }
 
+/*!
+ * @brief Get the configured mode for one of the sensor's GPIO pins.
+ *
+ * @param gpio GPIO number, either 0 or 1.
+ * @return The selected GPIO pin's configured mode.
+ */
 tmf8801_gpio_mode_t Adafruit_TMF8801::getGPIOMode(uint8_t gpio) {
   if (gpio == 0) {
     return (tmf8801_gpio_mode_t)_gpio0Mode;
@@ -241,6 +328,11 @@ tmf8801_gpio_mode_t Adafruit_TMF8801::getGPIOMode(uint8_t gpio) {
   return (tmf8801_gpio_mode_t)_gpio1Mode;
 }
 
+/*!
+ * @brief Run factory calibration and save the resulting data.
+ *
+ * @return True if calibration completed and data was read, otherwise false.
+ */
 bool Adafruit_TMF8801::performFactoryCalibration() {
   if (!_i2c_dev) {
     return false;
@@ -281,6 +373,13 @@ bool Adafruit_TMF8801::performFactoryCalibration() {
   return clearInterrupt(TMF8801_INT_RESULT);
 }
 
+/*!
+ * @brief Copy the saved factory calibration data into a caller buffer.
+ *
+ * @param data Buffer that receives the calibration data.
+ * @param len Size of the destination buffer in bytes.
+ * @return True if saved data was available and copied, otherwise false.
+ */
 bool Adafruit_TMF8801::getCalibrationData(uint8_t* data, uint8_t len) {
   if (!data || len < TMF8801_CALIBRATION_DATA_SIZE || !_hasCalibration) {
     return false;
@@ -289,6 +388,13 @@ bool Adafruit_TMF8801::getCalibrationData(uint8_t* data, uint8_t len) {
   return true;
 }
 
+/*!
+ * @brief Store factory calibration data for use during measurement.
+ *
+ * @param data Buffer containing the calibration data.
+ * @param len Size of the source buffer in bytes.
+ * @return True if the calibration data was stored, otherwise false.
+ */
 bool Adafruit_TMF8801::setCalibrationData(const uint8_t* data, uint8_t len) {
   if (!data || len < TMF8801_CALIBRATION_DATA_SIZE) {
     return false;
@@ -298,10 +404,22 @@ bool Adafruit_TMF8801::setCalibrationData(const uint8_t* data, uint8_t len) {
   return true;
 }
 
+/*!
+ * @brief Enable or disable use of saved factory calibration data.
+ *
+ * @param enable True to use saved calibration data, or false to ignore it.
+ */
 void Adafruit_TMF8801::enableCalibration(bool enable) {
   _useCalibration = enable;
 }
 
+/*!
+ * @brief Copy the most recently captured algorithm state to a caller buffer.
+ *
+ * @param data Buffer that receives the algorithm state.
+ * @param len Size of the destination buffer in bytes.
+ * @return True if saved state was available and copied, otherwise false.
+ */
 bool Adafruit_TMF8801::getAlgorithmState(uint8_t* data, uint8_t len) {
   if (!data || len < TMF8801_ALGORITHM_STATE_SIZE || !_hasAlgorithmState) {
     return false;
@@ -310,6 +428,13 @@ bool Adafruit_TMF8801::getAlgorithmState(uint8_t* data, uint8_t len) {
   return true;
 }
 
+/*!
+ * @brief Store algorithm state for use during measurement.
+ *
+ * @param data Buffer containing the algorithm state.
+ * @param len Size of the source buffer in bytes.
+ * @return True if the algorithm state was stored, otherwise false.
+ */
 bool Adafruit_TMF8801::setAlgorithmState(const uint8_t* data, uint8_t len) {
   if (!data || len < TMF8801_ALGORITHM_STATE_SIZE) {
     return false;
@@ -319,10 +444,20 @@ bool Adafruit_TMF8801::setAlgorithmState(const uint8_t* data, uint8_t len) {
   return true;
 }
 
+/*!
+ * @brief Enable or disable use of saved algorithm state.
+ *
+ * @param enable True to use saved state with calibration, or false to ignore.
+ */
 void Adafruit_TMF8801::enableAlgorithmState(bool enable) {
   _useAlgorithmState = enable;
 }
 
+/*!
+ * @brief Read the sensor chip ID.
+ *
+ * @return The chip ID, or 0 if the sensor has not been initialized.
+ */
 uint8_t Adafruit_TMF8801::getChipID() {
   if (!_i2c_dev) {
     return 0;
@@ -332,6 +467,11 @@ uint8_t Adafruit_TMF8801::getChipID() {
   return chipId.read();
 }
 
+/*!
+ * @brief Read the sensor hardware revision ID.
+ *
+ * @return The revision ID, or 0 if the sensor has not been initialized.
+ */
 uint8_t Adafruit_TMF8801::getRevisionID() {
   if (!_i2c_dev) {
     return 0;
@@ -341,6 +481,11 @@ uint8_t Adafruit_TMF8801::getRevisionID() {
   return revision.read();
 }
 
+/*!
+ * @brief Read the measurement application's status register.
+ *
+ * @return The status, or 0 if the sensor has not been initialized.
+ */
 uint8_t Adafruit_TMF8801::getStatus() {
   if (!_i2c_dev) {
     return 0;
@@ -350,6 +495,13 @@ uint8_t Adafruit_TMF8801::getStatus() {
   return status.read();
 }
 
+/*!
+ * @brief Read the measurement application firmware version.
+ *
+ * @param major Pointer that receives the major version.
+ * @param minor Pointer that receives the minor version.
+ * @param patch Pointer that receives the patch version.
+ */
 void Adafruit_TMF8801::getVersion(uint8_t* major, uint8_t* minor,
                                   uint8_t* patch) {
   if (!_i2c_dev || !major || !minor || !patch) {
@@ -367,6 +519,12 @@ void Adafruit_TMF8801::getVersion(uint8_t* major, uint8_t* minor,
   *patch = patchReg.read();
 }
 
+/*!
+ * @brief Read the sensor's serial number.
+ *
+ * @param serialNumber Pointer that receives the 16-bit serial number.
+ * @return True if the serial number was read, otherwise false.
+ */
 bool Adafruit_TMF8801::readSerialNumber(uint16_t* serialNumber) {
   if (!_i2c_dev || !serialNumber) {
     return false;
@@ -406,6 +564,11 @@ bool Adafruit_TMF8801::readSerialNumber(uint16_t* serialNumber) {
   return true;
 }
 
+/*!
+ * @brief Put the sensor into its low-power state.
+ *
+ * @return True if the power control bit was cleared, otherwise false.
+ */
 bool Adafruit_TMF8801::sleep() {
   if (!_i2c_dev) {
     return false;
@@ -417,6 +580,11 @@ bool Adafruit_TMF8801::sleep() {
   return powerOn.write(0);
 }
 
+/*!
+ * @brief Wake the sensor from its low-power state.
+ *
+ * @return True if the sensor powered up and became ready, otherwise false.
+ */
 bool Adafruit_TMF8801::wakeup() {
   if (!_i2c_dev) {
     return false;
