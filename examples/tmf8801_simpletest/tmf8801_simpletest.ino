@@ -58,9 +58,9 @@ void loop() {
       } else {
         Serial.print(F("Distance: "));
         Serial.print(result.distance_mm);
-        Serial.print(F(" mm\tReliability: "));
+        Serial.print(F(" mm   Reliability: "));
         printReliability(result.reliability);
-        Serial.print(F("\tStatus: "));
+        Serial.print(F("   Status: "));
         printMeasurementStatus(result.status);
         Serial.println();
       }
